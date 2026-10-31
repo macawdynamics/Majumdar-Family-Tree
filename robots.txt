@@ -1,0 +1,5 @@
+
+User-agent: *
+Allow: /
+
+Sitemap: https://macawdynamics.github.io/Majumdar-Family-Tree/sitemap.xml
