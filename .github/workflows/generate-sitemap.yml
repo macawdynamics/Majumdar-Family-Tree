@@ -1,0 +1,68 @@
+
+name: Generate Family Tree Sitemap
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate sitemap
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from urllib.parse import quote
+          from xml.etree.ElementTree import Element, SubElement, ElementTree
+
+          base_url = "https://macawdynamics.github.io/Majumdar-Family-Tree/"
+
+          files = set(Path(".").glob("*.html"))
+
+          ppl = Path("ppl")
+          if ppl.exists():
+              files.update(ppl.rglob("*.html"))
+
+          files = sorted(
+              f for f in files
+              if f.is_file() and not f.name.startswith("google")
+          )
+
+          root = Element(
+              "urlset",
+              xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+          )
+
+          for file in files:
+              url = SubElement(root, "url")
+              loc = SubElement(url, "loc")
+              loc.text = base_url + quote(file.as_posix(), safe="/")
+
+          ElementTree(root).write(
+              "sitemap.xml",
+              encoding="UTF-8",
+              xml_declaration=True
+          )
+
+          print(f"Generated sitemap with {len(files)} HTML pages.")
+          PY
+
+      - name: Commit updated sitemap
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add sitemap.xml
+          if ! git diff --cached --quiet; then
+            git commit -m "Automatically update family tree sitemap"
+            git push
+          else
+            echo "Sitemap is already up to date."
+          fi
